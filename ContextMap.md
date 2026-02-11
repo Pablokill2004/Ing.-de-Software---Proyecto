@@ -80,4 +80,5 @@ Evitar duplicación de lógica transversal, para centralizar código común que 
 | Core  Todos | Shared Kernel | Core provee clases base compartidas (`TimestampedModel`) para reutilización y consistencia. |
 
 # Context Map - Diagram
+<img width="2521" height="3425" alt="Context_Map_diagram" src="https://github.com/user-attachments/assets/58c4dce0-36ce-4570-86f3-ad97fa40d875" />
 
