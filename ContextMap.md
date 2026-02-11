@@ -79,5 +79,5 @@ Evitar duplicación de lógica transversal, para centralizar código común que 
 | Articles  Profiles | Partnership | Relación bidireccional para favoritos (M2M). Ambos contextos comparten información de forma colaborativa. |
 | Core  Todos | Shared Kernel | Core provee clases base compartidas (`TimestampedModel`) para reutilización y consistencia. |
 
-# AI-Driven Discovery - Context Map - Diagram
+# Context Map - Diagram
 
