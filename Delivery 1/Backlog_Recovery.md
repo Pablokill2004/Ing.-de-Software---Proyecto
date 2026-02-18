@@ -262,3 +262,4 @@ en el sistema, derivadas directamente del análisis del código fuente.
 
 La documentación generada servirá como base para futuras actividades
 de modernización, mejora de seguridad, refactorización e implementación de estándares de ingeniería.
+
