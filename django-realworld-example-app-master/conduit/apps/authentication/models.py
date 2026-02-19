@@ -1,8 +1,3 @@
-import jwt
-
-from datetime import datetime, timedelta
-
-from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser, BaseUserManager, PermissionsMixin
 )
@@ -100,13 +95,13 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampedModel):
     @property
     def token(self):
         """
-        Allows us to get a user's token by calling `user.token` instead of
-        `user.generate_jwt_token().
-
-        The `@property` decorator above makes this possible. `token` is called
-        a "dynamic property".
+        Strangler Fig bridge: delegates to TokenService.generate_token()
+        so that existing callers (serializers) that access user.token
+        continue to work while we incrementally migrate them to call
+        TokenService directly.
         """
-        return self._generate_jwt_token()
+        from .services import TokenService
+        return TokenService.generate_token(self)
 
     def get_full_name(self):
       """
@@ -123,17 +118,3 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampedModel):
         the user's real name, we return their username instead.
         """
         return self.username
-
-    def _generate_jwt_token(self):
-        """
-        Generates a JSON Web Token that stores this user's ID and has an expiry
-        date set to 60 days into the future.
-        """
-        dt = datetime.now() + timedelta(days=60)
-
-        token = jwt.encode({
-            'id': self.pk,
-            'exp': int(dt.strftime('%s'))
-        }, settings.SECRET_KEY, algorithm='HS256')
-
-        return token.decode('utf-8')
