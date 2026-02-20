@@ -1,65 +1,101 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# This workflow installs Python dependencies, runs tests with coverage,
+# measures Cyclomatic Complexity, lints, and runs SonarCloud analysis.
+# It fails if coverage < 70% or complexity > 10.
 
 name: Test and Build
-# Trigger the workflow on push or pull request events ONLY FOR THE MAIN BRANCH
+
+# Trigger on push to main AND on all pull requests (rubric requirement)
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
-# Set permissions for the workflow to read contents of the repository(very basic)
-permissions: 
+# Minimal permissions
+permissions:
   contents: read
 
-# What the worflow must execute when triggered
-jobs:
-  #Renamed build-->"text-and-build"
-  test-and-build:
+# Default working directory — the Django app lives in a subdirectory
+defaults:
+  run:
+    working-directory: django-realworld-example-app-master
 
+jobs:
+  test-and-build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.12.7
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.12.7"
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: SonarCloud Scan
-      uses: SonarSource/sonarqube-scan-action@v6
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      with:
-        args: >
-          -Dsonar.organization=conduit-realworld-django
-          -Dsonar.projectKey=Pablokill2004_Ing.-de-Software---Proyecto
-    #Check the Coverage threshold - if the coverage is below 70% the build will fail
-    - name: Check coverage threshold
-      run: |
-          COVERAGE=$(node -p "require('./coverage/coverage-summary.json').total.lines.pct")
-          echo "Coverage is $COVERAGE%"
-          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
-            echo "Coverage below threshold"
+      # 1. Checkout with full history (needed by SonarCloud for blame info)
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Set up Python (v5 supports 3.12.x properly)
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 3. Install all dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest coverage radon
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # 4. Run tests with coverage (MUST come before coverage check & Sonar)
+      - name: Run tests with coverage
+        run: |
+          coverage run -m pytest
+          coverage xml -o coverage.xml
+          coverage report
+
+      # 5. Check coverage threshold — fail if below 70%
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(coverage report --format=total)
+          echo "Total line coverage: ${COVERAGE}%"
+          if [ "$(echo "${COVERAGE} < 70" | bc -l)" -eq 1 ]; then
+            echo "::error::Coverage ${COVERAGE}% is below the 70% threshold"
             exit 1
           fi
-    - name: Run tests with coverage
-      run: |
-        pip install coverage
-        coverage run -m pytest
-        coverage xml
-    # Run the complexity analysis with eslint
-    - name: Lint
-      run: flake8 .
-    # Run SonarQube Scanner
-   
-            
 
+      # 6. Lint with flake8 (scoped to the Python source directory)
+      - name: Lint with flake8
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Treat all other issues as warnings
+          flake8 . --count --exit-zero --max-line-length=120 --statistics
 
+      # 7. Cyclomatic Complexity — fail if any function exceeds threshold
+      - name: Check Cyclomatic Complexity (flake8 + mccabe)
+        run: |
+          echo "=== Cyclomatic Complexity Report (max allowed: 10) ==="
+          flake8 . --max-complexity 10 --statistics --count 2>&1 || {
+            echo "::error::Cyclomatic complexity exceeds threshold (>10)"
+            exit 1
+          }
 
-    
+      # 8. Detailed complexity report with radon (informational)
+      - name: Radon Complexity Report
+        run: |
+          echo "=== Radon Cyclomatic Complexity (rank C or worse = warning) ==="
+          radon cc . -a -s -n C
+          echo ""
+          echo "=== Radon Maintainability Index ==="
+          radon mi . -s
+
+      # 9. SonarCloud Scan — runs AFTER tests so it can consume coverage.xml
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.organization=conduit-realworld-django
+            -Dsonar.projectKey=Pablokill2004_Ing.-de-Software---Proyecto
+            -Dsonar.sources=django-realworld-example-app-master
+            -Dsonar.python.coverage.reportPaths=django-realworld-example-app-master/coverage.xml
 
