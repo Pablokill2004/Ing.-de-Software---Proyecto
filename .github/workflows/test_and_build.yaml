@@ -6,8 +6,6 @@ name: Test and Build
 on: 
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 # Set permissions for the workflow to read contents of the repository(very basic)
 permissions: 
