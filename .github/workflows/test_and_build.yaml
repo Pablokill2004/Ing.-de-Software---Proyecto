@@ -54,13 +54,13 @@ jobs:
       run: npm run lint
     # Run SonarQube Scanner
     - name: SonarQube Scan
-      run: |
-        sonar-scanner \
-          -Dsonar.projectKey=conduit-realworld-django \
-          -Dsonar.sources=. \
-          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
- 
+      uses: SonarSource/sonarqube-scan-action@v6
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      with:
+        projectBaseDir: .
+        
 
 
 
