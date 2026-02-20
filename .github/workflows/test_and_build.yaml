@@ -31,11 +31,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-    - name: Run tests
-      run: |
-        pip install pytest pytest-cov
-        pytest --cov=. --cov-report=xml
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarqube-scan-action@v6
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        args: >
+          -Dsonar.organization=conduit-realworld-django
+          -Dsonar.projectKey=Pablokill2004_Ing.-de-Software---Proyecto
     #Check the Coverage threshold - if the coverage is below 70% the build will fail
     - name: Check coverage threshold
       run: |
@@ -54,14 +57,7 @@ jobs:
     - name: Lint
       run: flake8 .
     # Run SonarQube Scanner
-    - name: SonarCloud Scan
-      uses: SonarSource/sonarqube-scan-action@v6
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      with:
-        args: >
-          -Dsonar.organization=conduit-realworld-django
-          -Dsonar.projectKey=Pablokill2004_Ing.-de-Software---Proyecto
+   
             
 
 
