@@ -5,8 +5,7 @@ name: Test and Build
 # Trigger the workflow on push or pull request events ONLY FOR THE MAIN BRANCH
 on:
   push:
-    branches: [ main ]
-  pull_request:
+    branches: [ "main" ]
 
 # Set permissions for the workflow to read contents of the repository(very basic)
 permissions: 
