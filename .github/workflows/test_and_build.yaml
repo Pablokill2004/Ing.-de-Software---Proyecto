@@ -52,7 +52,7 @@ jobs:
     # Run the complexity analysis with eslint
     - name: Run complexity analysis
       run: npm run lint
-    # Run SonarQube scan
+    # Run SonarQube Scanner
     - name: SonarQube Scan
       run: |
         sonar-scanner \
