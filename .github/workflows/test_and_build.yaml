@@ -7,7 +7,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "siqui" ]
+    branches: [ "main" ]
 
 # Set permissions for the workflow to read contents of the repository(very basic)
 permissions: 
@@ -31,12 +31,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Test with pytest
       run: |
         pytest
@@ -49,18 +44,24 @@ jobs:
             echo "Coverage below threshold"
             exit 1
           fi
+    - name: Run tests with coverage
+      run: |
+        pip install coverage
+        coverage run -m pytest
+        coverage xml
     # Run the complexity analysis with eslint
-    - name: Run complexity analysis
-      run: npm run lint
+    - name: Lint
+      run: flake8 .
     # Run SonarQube Scanner
-    - name: SonarQube Scan
+    - name: SonarCloud Scan
       uses: SonarSource/sonarqube-scan-action@v6
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
       with:
-        projectBaseDir: .
-        
+        args: >
+          -Dsonar.organization=conduit-realworld-django
+          -Dsonar.projectKey=Pablokill2004_Ing.-de-Software---Proyecto
+            
 
 
 
