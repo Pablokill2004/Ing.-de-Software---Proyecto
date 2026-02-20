@@ -42,8 +42,8 @@ INSTALLED_APPS = [
     'django_extensions',
     'rest_framework',
 
-    'conduit.apps.articles',
-    'conduit.apps.authentication',
+    'conduit.apps.articles.ArticlesAppConfig',
+    'conduit.apps.authentication.AuthenticationAppConfig',
     'conduit.apps.core',
     'conduit.apps.profiles',
 ]
@@ -99,17 +99,11 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',  # noqa: E501
     },
     {
-        'NAME': (
-            'django.contrib.auth.password_validation.MinimumLengthValidator',
-        ),
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
     },
     {
-        'NAME': (
-            'django.contrib.auth.password_validation.CommonPasswordValidator',
-        ),
-    },(
-            'django.contrib.auth.password_validation.NumericPasswordValidator',
-        )
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
