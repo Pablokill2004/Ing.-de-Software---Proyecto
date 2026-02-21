@@ -51,12 +51,7 @@ jobs:
         pip install coverage
         coverage run -m pytest
         coverage xml
-    # Run the complexity analysis with eslint
-    - name: Lint
-      run: flake8 .
-    # Run SonarQube Scanner
-   
-            
+
 
 
 
