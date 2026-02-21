@@ -46,11 +46,7 @@ jobs:
             echo "Coverage below threshold"
             exit 1
           fi
-    - name: Run tests with coverage
-      run: |
-        pip install coverage
-        coverage run -m pytest
-        coverage xml
+
 
    
             
