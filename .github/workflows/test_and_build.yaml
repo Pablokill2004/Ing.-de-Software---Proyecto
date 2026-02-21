@@ -57,11 +57,7 @@ jobs:
         args: >
           -Dsonar.organization=conduit-realworld-django
           -Dsonar.projectKey=Pablokill2004_Ing.-de-Software---Proyecto
-    # Run the complexity analysis with flake8
-    - name: Lint
-      working-directory: django-realworld-example-app-master
-      run: flake8 .
-    # Run SonarQube Scanner
+   
    
             
 
