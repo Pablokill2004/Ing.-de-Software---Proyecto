@@ -13,6 +13,7 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
+<<<<<<< HEAD
 from django.conf.urls import include, url
 from django.contrib import admin
 
@@ -22,4 +23,15 @@ urlpatterns = [
     url(r'^api/', include('conduit.apps.articles.urls', namespace='articles')),
     url(r'^api/', include('conduit.apps.authentication.urls', namespace='authentication')),
     url(r'^api/', include('conduit.apps.profiles.urls', namespace='profiles')),
+=======
+from django.urls import include, re_path
+from django.contrib import admin
+
+urlpatterns = [
+    re_path(r'^admin/', admin.site.urls),
+
+    re_path(r'^api/', include('conduit.apps.articles.urls', namespace='articles')),
+    re_path(r'^api/', include('conduit.apps.authentication.urls', namespace='authentication')),
+    re_path(r'^api/', include('conduit.apps.profiles.urls', namespace='profiles')),
+>>>>>>> 20ad3f5e68949296508f1d55852c39b97b01023d
 ]
