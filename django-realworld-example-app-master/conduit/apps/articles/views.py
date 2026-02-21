@@ -7,11 +7,26 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Article, Comment, Tag
+from .permissions import IsAuthorOrReadOnly
 from .renderers import ArticleJSONRenderer, CommentJSONRenderer
 from .serializers import ArticleSerializer, CommentSerializer, TagSerializer
 
 
-class ArticleViewSet(mixins.CreateModelMixin, 
+def get_article_by_slug(slug):
+    """
+    Centralized article lookup — eliminates duplicated try/except blocks
+    that were scattered across 5 view methods (DRY principle).
+
+    Applies the Extract Method refactoring pattern: identical lookup logic
+    is consolidated into a single, reusable function.
+    """
+    try:
+        return Article.objects.get(slug=slug)
+    except Article.DoesNotExist:
+        raise NotFound('An article with this slug does not exist.')
+
+
+class ArticleViewSet(mixins.CreateModelMixin,
                      mixins.ListModelMixin,
                      mixins.RetrieveModelMixin,
                      viewsets.GenericViewSet):
@@ -49,7 +64,7 @@ class ArticleViewSet(mixins.CreateModelMixin,
         serializer_data = request.data.get('article', {})
 
         serializer = self.serializer_class(
-        data=serializer_data, context=serializer_context
+            data=serializer_data, context=serializer_context
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -70,11 +85,7 @@ class ArticleViewSet(mixins.CreateModelMixin,
 
     def retrieve(self, request, slug):
         serializer_context = {'request': request}
-
-        try:
-            serializer_instance = self.queryset.get(slug=slug)
-        except Article.DoesNotExist:
-            raise NotFound('An article with this slug does not exist.')
+        serializer_instance = get_article_by_slug(slug)
 
         serializer = self.serializer_class(
             serializer_instance,
@@ -83,27 +94,35 @@ class ArticleViewSet(mixins.CreateModelMixin,
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
     def update(self, request, slug):
         serializer_context = {'request': request}
+        serializer_instance = get_article_by_slug(slug)
 
-        try:
-            serializer_instance = self.queryset.get(slug=slug)
-        except Article.DoesNotExist:
-            raise NotFound('An article with this slug does not exist.')
-            
+        # Security fix: enforce ownership check (OWASP A01 — Broken Access Control).
+        # Only the article's author may update it.
+        self.check_object_permissions(request, serializer_instance)
+
         serializer_data = request.data.get('article', {})
 
         serializer = self.serializer_class(
-            serializer_instance, 
+            serializer_instance,
             context=serializer_context,
-            data=serializer_data, 
+            data=serializer_data,
             partial=True
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def get_permissions(self):
+        """
+        Apply IsAuthorOrReadOnly for update operations so that
+        check_object_permissions enforces ownership.
+        """
+        if self.request.method in ('PUT', 'PATCH'):
+            return [IsAuthenticatedOrReadOnly(), IsAuthorOrReadOnly()]
+        return super().get_permissions()
 
 
 class CommentsListCreateAPIView(generics.ListCreateAPIView):
@@ -118,21 +137,13 @@ class CommentsListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
 
     def filter_queryset(self, queryset):
-        # The built-in list function calls `filter_queryset`. Since we only
-        # want comments for a specific article, this is a good place to do
-        # that filtering.
         filters = {self.lookup_field: self.kwargs[self.lookup_url_kwarg]}
-
         return queryset.filter(**filters)
 
     def create(self, request, article_slug=None):
         data = request.data.get('comment', {})
         context = {'author': request.user.profile}
-
-        try:
-            context['article'] = Article.objects.get(slug=article_slug)
-        except Article.DoesNotExist:
-            raise NotFound('An article with this slug does not exist.')
+        context['article'] = get_article_by_slug(article_slug)
 
         serializer = self.serializer_class(data=data, context=context)
         serializer.is_valid(raise_exception=True)
@@ -143,7 +154,7 @@ class CommentsListCreateAPIView(generics.ListCreateAPIView):
 
 class CommentsDestroyAPIView(generics.DestroyAPIView):
     lookup_url_kwarg = 'comment_pk'
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
     queryset = Comment.objects.all()
 
     def destroy(self, request, article_slug=None, comment_pk=None):
@@ -152,45 +163,50 @@ class CommentsDestroyAPIView(generics.DestroyAPIView):
         except Comment.DoesNotExist:
             raise NotFound('A comment with this ID does not exist.')
 
+        # Security fix: enforce ownership check (OWASP A01).
+        # Only the comment's author may delete it.
+        self.check_object_permissions(request, comment)
+
         comment.delete()
 
         return Response(None, status=status.HTTP_204_NO_CONTENT)
 
 
 class ArticlesFavoriteAPIView(APIView):
+    """
+    Handles favorite and unfavorite actions for articles.
+
+    Refactored to use a shared _toggle_favorite helper, eliminating the
+    near-duplicate post/delete methods (DRY principle).
+    """
     permission_classes = (IsAuthenticated,)
     renderer_classes = (ArticleJSONRenderer,)
     serializer_class = ArticleSerializer
 
-    def delete(self, request, article_slug=None):
-        profile = self.request.user.profile
+    def _toggle_favorite(self, request, article_slug, action, success_status):
+        """
+        Shared helper that eliminates duplication between post() and delete().
+        The only differences between favorite/unfavorite are the profile method
+        called and the HTTP status code returned.
+        """
+        profile = request.user.profile
         serializer_context = {'request': request}
+        article = get_article_by_slug(article_slug)
 
-        try:
-            article = Article.objects.get(slug=article_slug)
-        except Article.DoesNotExist:
-            raise NotFound('An article with this slug was not found.')
-
-        profile.unfavorite(article)
+        getattr(profile, action)(article)
 
         serializer = self.serializer_class(article, context=serializer_context)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=success_status)
 
     def post(self, request, article_slug=None):
-        profile = self.request.user.profile
-        serializer_context = {'request': request}
+        return self._toggle_favorite(
+            request, article_slug, 'favorite', status.HTTP_201_CREATED
+        )
 
-        try:
-            article = Article.objects.get(slug=article_slug)
-        except Article.DoesNotExist:
-            raise NotFound('An article with this slug was not found.')
-
-        profile.favorite(article)
-
-        serializer = self.serializer_class(article, context=serializer_context)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def delete(self, request, article_slug=None):
+        return self._toggle_favorite(
+            request, article_slug, 'unfavorite', status.HTTP_200_OK
+        )
 
 
 class TagListAPIView(generics.ListAPIView):
