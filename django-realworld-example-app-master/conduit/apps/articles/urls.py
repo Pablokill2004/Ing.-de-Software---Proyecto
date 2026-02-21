@@ -1,4 +1,4 @@
-from django.urls import include, re_path
+from django.conf.urls import include, url
 
 from rest_framework.routers import DefaultRouter
 
@@ -11,18 +11,18 @@ router = DefaultRouter(trailing_slash=False)
 router.register(r'articles', ArticleViewSet)
 
 urlpatterns = [
-    re_path(r'^', include(router.urls)),
+    url(r'^', include(router.urls)),
 
-    re_path(r'^articles/feed/?$', ArticlesFeedAPIView.as_view()),
+    url(r'^articles/feed/?$', ArticlesFeedAPIView.as_view()),
 
-    re_path(r'^articles/(?P<article_slug>[-\w]+)/favorite/?$',
+    url(r'^articles/(?P<article_slug>[-\w]+)/favorite/?$',
         ArticlesFavoriteAPIView.as_view()),
 
-    re_path(r'^articles/(?P<article_slug>[-\w]+)/comments/?$', 
+    url(r'^articles/(?P<article_slug>[-\w]+)/comments/?$', 
         CommentsListCreateAPIView.as_view()),
 
-    re_path(r'^articles/(?P<article_slug>[-\w]+)/comments/(?P<comment_pk>[\d]+)/?$',
+    url(r'^articles/(?P<article_slug>[-\w]+)/comments/(?P<comment_pk>[\d]+)/?$',
         CommentsDestroyAPIView.as_view()),
 
-    re_path(r'^tags/?$', TagListAPIView.as_view()),
+    url(r'^tags/?$', TagListAPIView.as_view()),
 ]
