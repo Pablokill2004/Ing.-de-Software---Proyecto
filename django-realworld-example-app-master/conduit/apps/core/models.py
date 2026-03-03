@@ -9,6 +9,8 @@ class TimestampedModel(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        # This model is abstract, meaning that it will not be used to create any database table. Instead, other models will inherit from this model, and the
+        # fields defined here will be added to those models.
         abstract = True
 
         # By default, any model that inherits from `TimestampedModel` should
