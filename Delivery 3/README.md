@@ -40,8 +40,8 @@ El archivo se encuentra en la raíz del repositorio:
 
 ## *Evidence of vulnerability remediation (Before/After report)*
 
-Se utilizó **Trivy** para escanear las dependencias del proyecto. El reporte inicial (`trivy-report-BEFORE.json`) identificó vulnerabilidades críticas en las dependencias. Tras actualizar las versiones afectadas, el reporte final (`trivy-report-AFTER.json`) confirma la remediación.
+Se utilizó **Trivy** para escanear las dependencias del proyecto. El reporte inicial identificó vulnerabilidades críticas en las dependencias. Tras actualizar las versiones afectadas, el reporte final confirma la remediación.
 
 El análisis completo Before/After con los CVEs identificados y las versiones corregidas se documenta en:
 
-[Delivery-3-DevSecOps-Pre-commit-Hook](Delivery-3-DevSecOps-Pre-commit-Hook.pdf)
+[Delivery-3-Vulnerability-Patching](Delivery-3-Vulnerability-Patching.pdf)
