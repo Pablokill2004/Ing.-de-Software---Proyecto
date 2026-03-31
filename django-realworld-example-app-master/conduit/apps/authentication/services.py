@@ -3,7 +3,7 @@ import jwt
 from datetime import datetime, timedelta
 
 from django.conf import settings
-from django.contrib.auth import authenticate as django_authenticate
+from django.contrib.auth import authenticate as django_authenticate, get_user_model
 
 
 class TokenService:
@@ -75,14 +75,22 @@ class AuthenticationService:
         if not password:
             raise ValueError('A password is required to log in.')
 
+        # Check for inactive users before calling django_authenticate, because
+        # Django's ModelBackend silently returns None for inactive accounts,
+        # making them indistinguishable from wrong credentials.
+        User = get_user_model()
+        try:
+            candidate = User.objects.get(email=email)
+            if not candidate.is_active:
+                raise ValueError('This user has been deactivated.')
+        except User.DoesNotExist:
+            pass
+
         user = django_authenticate(username=email, password=password)
 
         if user is None:
             raise ValueError(
                 'A user with this email and password was not found.'
             )
-
-        if not user.is_active:
-            raise ValueError('This user has been deactivated.')
 
         return user
