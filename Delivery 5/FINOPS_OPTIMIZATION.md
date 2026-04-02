@@ -115,6 +115,8 @@ Los siguientes problemas bloqueaban la ejecución del suite de pruebas y fueron 
 | `conduit/settings.py` | Agregado esquema `http://` a las entradas de `CORS_ORIGIN_WHITELIST` |
 | `serializers.py` (articles + profiles) | Cambiado `is_authenticated()` (llamada de método) a `is_authenticated` (propiedad, el método fue eliminado en Django 2.0) |
 
+> Nota operativa: el contenedor de este branch está pensado para correr con **Python 3.11 + Django 4.x** usando `django-realworld-example-app-master/requirements.txt`. Si al levantar Docker ves logs de Django 1.10 o errores tipo `ImportError: cannot import name 'include'`, casi seguro tienes cambios locales en `Dockerfile`/`entrypoint.sh`/puertos o un `requirements.txt` en la raíz que está forzando dependencias antiguas.
+
 ---
 
 ## Resultados del Benchmark
