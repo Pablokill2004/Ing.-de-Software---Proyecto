@@ -1,4 +1,4 @@
-# Reporte de Optimización FinOps — Entrega 5
+# Delivery 5: Reporte de Optimización FinOps
 
 ## Resumen
 
