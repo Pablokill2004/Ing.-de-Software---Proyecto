@@ -1,3 +1,5 @@
+# # Delivery 5: Benchmark
+
 ## 1. Resumen Ejecutivo
 
 **Problema Detectado:** Consultas ineficientes (N+1) en el listado de artículos.
