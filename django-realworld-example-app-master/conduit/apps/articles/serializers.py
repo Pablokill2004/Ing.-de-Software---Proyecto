@@ -57,17 +57,22 @@ class ArticleSerializer(serializers.ModelSerializer):
         return instance.created_at.isoformat()
 
     def get_favorited(self, instance):
+        favorite_ids = self.context.get('favorite_article_ids', None)
+        if favorite_ids is not None:
+            return instance.pk in favorite_ids
+
+        # Fallback for single-object endpoints (retrieve, update, favorite)
         request = self.context.get('request', None)
-
-        if request is None:
+        if request is None or not request.user.is_authenticated:
             return False
-
-        if not request.user.is_authenticated():
-            return False
-
         return request.user.profile.has_favorited(instance)
 
     def get_favorites_count(self, instance):
+        # Use the annotation injected by the queryset when available (list
+        # endpoints), otherwise fall back to a direct count (single-object
+        # endpoints where annotation is absent).
+        if hasattr(instance, 'favorites_count'):
+            return instance.favorites_count
         return instance.favorited_by.count()
 
     def get_updated_at(self, instance):

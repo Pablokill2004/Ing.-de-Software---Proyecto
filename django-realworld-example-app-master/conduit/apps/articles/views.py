@@ -1,3 +1,5 @@
+from django.db.models import Count
+
 from rest_framework import generics, mixins, status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import (
@@ -21,9 +23,42 @@ def get_article_by_slug(slug):
     is consolidated into a single, reusable function.
     """
     try:
-        return Article.objects.get(slug=slug)
+        return Article.objects.select_related(
+            'author', 'author__user'
+        ).get(slug=slug)
     except Article.DoesNotExist:
         raise NotFound('An article with this slug does not exist.')
+
+
+def _build_list_context(request):
+    """
+    Build the serializer context for list endpoints.
+
+    Pre-computes favorite_article_ids and following_profile_ids as Python
+    sets so that ArticleSerializer and ProfileSerializer can do O(1) set
+    lookups instead of issuing one DB query per article (N+1 elimination).
+    """
+    context = {'request': request}
+    if request.user.is_authenticated:
+        profile = request.user.profile
+        context['favorite_article_ids'] = set(
+            profile.favorites.values_list('pk', flat=True)
+        )
+        context['following_profile_ids'] = set(
+            profile.follows.values_list('pk', flat=True)
+        )
+    else:
+        context['favorite_article_ids'] = set()
+        context['following_profile_ids'] = set()
+    return context
+
+
+_ARTICLE_QUERYSET = (
+    Article.objects
+    .select_related('author', 'author__user')
+    .prefetch_related('tags')
+    .annotate(favorites_count=Count('favorited_by'))
+)
 
 
 class ArticleViewSet(mixins.CreateModelMixin,
@@ -32,7 +67,7 @@ class ArticleViewSet(mixins.CreateModelMixin,
                      viewsets.GenericViewSet):
 
     lookup_field = 'slug'
-    queryset = Article.objects.select_related('author', 'author__user')
+    queryset = _ARTICLE_QUERYSET
     permission_classes = (IsAuthenticatedOrReadOnly,)
     renderer_classes = (ArticleJSONRenderer,)
     serializer_class = ArticleSerializer
@@ -72,15 +107,12 @@ class ArticleViewSet(mixins.CreateModelMixin,
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def list(self, request):
-        serializer_context = {'request': request}
         page = self.paginate_queryset(self.get_queryset())
-
         serializer = self.serializer_class(
             page,
-            context=serializer_context,
+            context=_build_list_context(request),
             many=True
         )
-
         return self.get_paginated_response(serializer.data)
 
     def retrieve(self, request, slug):
@@ -226,22 +258,18 @@ class TagListAPIView(generics.ListAPIView):
 
 class ArticlesFeedAPIView(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
-    queryset = Article.objects.all()
+    queryset = _ARTICLE_QUERYSET
     renderer_classes = (ArticleJSONRenderer,)
     serializer_class = ArticleSerializer
 
     def get_queryset(self):
-        return Article.objects.filter(
-            author__in=self.request.user.profile.follows.all()
+        return _ARTICLE_QUERYSET.filter(
+            author__in=self.request.user.profile.follows.values_list('pk', flat=True)
         )
 
     def list(self, request):
-        queryset = self.get_queryset()
-        page = self.paginate_queryset(queryset)
-
-        serializer_context = {'request': request}
+        page = self.paginate_queryset(self.get_queryset())
         serializer = self.serializer_class(
-            page, context=serializer_context, many=True
+            page, context=_build_list_context(request), many=True
         )
-
         return self.get_paginated_response(serializer.data)

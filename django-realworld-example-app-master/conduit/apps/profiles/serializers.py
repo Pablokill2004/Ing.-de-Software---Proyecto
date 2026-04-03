@@ -21,15 +21,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         return 'https://static.productionready.io/images/smiley-cyrus.jpg'
 
     def get_following(self, instance):
+        following_ids = self.context.get('following_profile_ids', None)
+        if following_ids is not None:
+            return instance.pk in following_ids
+
+        # Fallback for single-object endpoints (profile retrieve, follow/unfollow)
         request = self.context.get('request', None)
-
-        if request is None:
+        if request is None or not request.user.is_authenticated:
             return False
-
-        if not request.user.is_authenticated():
-            return False
-
-        follower = request.user.profile
-        followee = instance
-
-        return follower.is_following(followee)
+        return request.user.profile.is_following(instance)
