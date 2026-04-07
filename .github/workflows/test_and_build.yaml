@@ -39,12 +39,19 @@ jobs:
         coverage xml
     #Check the Coverage threshold - if the coverage is below 70% the build will fail
     - name: Check coverage threshold
-      working-directory: django-realworld-example-app-master/conduit
+      working-directory: django-realworld-example-app-master
       env:
         DJANGO_SETTINGS_MODULE: conduit.settings
       run: |
-        COVERAGE=$(coverage report | tail -1 | awk '{print $NF}' | tr -d '%')
-        echo "Coverage is $COVERAGE%"
+        COVERAGE=$(coverage report | awk '/^TOTAL/ {print $NF}' | tr -d '%')
+        echo "Coverage is ${COVERAGE}%"
+
+        if [ -z "$COVERAGE" ]; then
+          echo "Could not parse coverage percentage from coverage report"
+          coverage report
+          exit 1
+        fi
+
         if (( $(echo "$COVERAGE < 70" | bc -l) )); then
           echo "Coverage below threshold"
           exit 1
@@ -58,6 +65,7 @@ jobs:
         coverage xml
     # Run the complexity analysis with eslint
     - name: Lint
+      working-directory: django-realworld-example-app-master
       run: flake8 .
     # Run SonarQube Scanner
     - name: SonarCloud Scan

@@ -1,0 +1,2 @@
+[flake8]
+exclude = node_modules,**/node_modules,venv,.venv,.git,__pycache__
