@@ -5,7 +5,7 @@ from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 from conduit.apps.articles.models import Article, Comment, Tag
 from conduit.apps.articles.views import (
-    ArticlesFeedAPIView, ArticlesFavoriteAPIView, get_article_by_slug
+    ArticlesFeedAPIView, get_article_by_slug
 )
 from conduit.apps.authentication.models import User
 

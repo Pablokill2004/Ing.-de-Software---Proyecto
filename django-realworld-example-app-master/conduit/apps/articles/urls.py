@@ -16,13 +16,13 @@ urlpatterns = [
     re_path(r'^articles/feed/?$', ArticlesFeedAPIView.as_view()),
 
     re_path(r'^articles/(?P<article_slug>[-\w]+)/favorite/?$',
-        ArticlesFavoriteAPIView.as_view()),
+            ArticlesFavoriteAPIView.as_view()),
 
     re_path(r'^articles/(?P<article_slug>[-\w]+)/comments/?$',
-        CommentsListCreateAPIView.as_view()),
+            CommentsListCreateAPIView.as_view()),
 
     re_path(r'^articles/(?P<article_slug>[-\w]+)/comments/(?P<comment_pk>[\d]+)/?$',
-        CommentsDestroyAPIView.as_view()),
+            CommentsDestroyAPIView.as_view()),
 
     re_path(r'^tags/?$', TagListAPIView.as_view()),
 ]

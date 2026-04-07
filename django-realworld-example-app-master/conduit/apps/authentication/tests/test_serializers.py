@@ -2,8 +2,6 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from rest_framework.exceptions import ValidationError
-
 from conduit.apps.authentication.models import User
 from conduit.apps.authentication.serializers import (
     LoginSerializer, RegistrationSerializer, UserSerializer
@@ -31,7 +29,7 @@ class RegistrationSerializerTest(TestCase):
             'password': 'strongpass123',
         })
         serializer.is_valid()
-        user = serializer.save()
+        serializer.save()
         self.assertIn('token', serializer.data)
 
     def test_password_too_short_is_invalid(self):
